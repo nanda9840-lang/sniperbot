@@ -3,30 +3,36 @@ import requests
 import json
 
 app = Flask(__name__)
+
 SECRET = "mysecretkey"
 
 TELEGRAM_TOKEN = "YOUR_BOT_TOKEN"
 DEFAULT_CHAT_ID = "-1003602691495"
 TELEGRAM_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
 
+
 @app.route("/", methods=["POST"])
 def webhook():
 
     try:
-        # Get raw data
         raw_data = request.data.decode("utf-8")
 
-        # Try parsing JSON
+        # Try parse JSON
         try:
             data = json.loads(raw_data)
         except:
             data = None
 
-        # If JSON contains full telegram payload
+        # 🔐 Secret validation (if JSON contains secret)
+        if isinstance(data, dict) and "secret" in data:
+            if data.get("secret") != SECRET:
+                return jsonify({"error": "unauthorized"}), 403
+
+        # If JSON already formatted for Telegram
         if isinstance(data, dict) and "chat_id" in data and "text" in data:
             telegram_payload = data
 
-        # If JSON but not telegram formatted
+        # If JSON but not Telegram format
         elif isinstance(data, dict):
             telegram_payload = {
                 "chat_id": DEFAULT_CHAT_ID,
@@ -47,9 +53,6 @@ def webhook():
         return jsonify({
             "status": "ok",
             "telegram_response": response.json()
-
-        if data and data.get("secret") != SECRET:
-    return jsonify({"error": "unauthorized"}), 403
         })
 
     except Exception as e:
