@@ -1,50 +1,60 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
 import requests
-import os
-
-TOKEN = os.environ.get("TOKEN")
-CHAT_ID = os.environ.get("CHAT_ID")
+import json
 
 app = Flask(__name__)
+SECRET = "mysecretkey"
 
-@app.route('/webhook', methods=['POST'])
+TELEGRAM_TOKEN = "YOUR_BOT_TOKEN"
+DEFAULT_CHAT_ID = "-1003602691495"
+TELEGRAM_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+
+@app.route("/", methods=["POST"])
 def webhook():
-    data = request.json
 
-    symbol = data.get("symbol")
-    action = data.get("action")
-    entry  = data.get("entry")
-    tp1    = data.get("tp1")
-    tp2    = data.get("tp2")
-    tp3    = data.get("tp3")
-    sl     = data.get("sl")
+    try:
+        # Get raw data
+        raw_data = request.data.decode("utf-8")
 
-    message = f"""
-🎯 <b>Universal Adaptive Sniper PRO</b>
+        # Try parsing JSON
+        try:
+            data = json.loads(raw_data)
+        except:
+            data = None
 
-<b>Symbol:</b> {symbol}
-<b>Action:</b> {action}
+        # If JSON contains full telegram payload
+        if isinstance(data, dict) and "chat_id" in data and "text" in data:
+            telegram_payload = data
 
-🎯 Entry: {entry}
-✅ TP1: {tp1}
-✅ TP2: {tp2}
-✅ TP3: {tp3}
-🛑 SL: {sl}
-"""
+        # If JSON but not telegram formatted
+        elif isinstance(data, dict):
+            telegram_payload = {
+                "chat_id": DEFAULT_CHAT_ID,
+                "text": json.dumps(data, indent=2),
+                "parse_mode": "HTML"
+            }
 
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+        # If plain text
+        else:
+            telegram_payload = {
+                "chat_id": DEFAULT_CHAT_ID,
+                "text": raw_data,
+                "parse_mode": "HTML"
+            }
 
-    payload = {
-        "chat_id": CHAT_ID,
-        "text": message,
-        "parse_mode": "HTML"
-    }
+        response = requests.post(TELEGRAM_URL, json=telegram_payload)
 
-    requests.post(url, json=payload)
+        return jsonify({
+            "status": "ok",
+            "telegram_response": response.json()
 
-    return {"status": "ok"}
+        if data and data.get("secret") != SECRET:
+    return jsonify({"error": "unauthorized"}), 403
+        })
 
-# ───── Correct Flask Configuration for Render ─────
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))  # Use Render's PORT
-    app.run(host="0.0.0.0", port=port)         # Listen on all interfaces
+    app.run()
