@@ -1,13 +1,20 @@
 from flask import Flask, request, jsonify
 import requests
 import json
+import os
 
 app = Flask(__name__)
 
-SECRET = "mysecretkey"
-
-TELEGRAM_TOKEN = "YOUR_BOT_TOKEN"
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
+SECRET = os.environ.get("SECRET")
 DEFAULT_CHAT_ID = "-1003602691495"
+
+if not TELEGRAM_TOKEN:
+    raise ValueError("TELEGRAM_TOKEN environment variable not set")
+
+if not SECRET:
+    raise ValueError("SECRET environment variable not set")
+
 TELEGRAM_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
 
 
@@ -17,38 +24,26 @@ def webhook():
     try:
         raw_data = request.data.decode("utf-8")
 
-        # Try parse JSON
         try:
             data = json.loads(raw_data)
         except:
             data = None
 
-        # 🔐 Secret validation (if JSON contains secret)
-        if isinstance(data, dict) and "secret" in data:
-            if data.get("secret") != SECRET:
-                return jsonify({"error": "unauthorized"}), 403
+        # 🔐 Strict secret validation
+        if not isinstance(data, dict) or data.get("secret") != SECRET:
+            return jsonify({"error": "unauthorized"}), 403
 
         # If JSON already formatted for Telegram
-        if isinstance(data, dict) and "chat_id" in data and "text" in data:
+        if "chat_id" in data and "text" in data:
             telegram_payload = data
-
-        # If JSON but not Telegram format
-        elif isinstance(data, dict):
+        else:
             telegram_payload = {
                 "chat_id": DEFAULT_CHAT_ID,
                 "text": json.dumps(data, indent=2),
                 "parse_mode": "HTML"
             }
 
-        # If plain text
-        else:
-            telegram_payload = {
-                "chat_id": DEFAULT_CHAT_ID,
-                "text": raw_data,
-                "parse_mode": "HTML"
-            }
-
-        response = requests.post(TELEGRAM_URL, json=telegram_payload)
+        response = requests.post(TELEGRAM_URL, json=telegram_payload, timeout=10)
 
         return jsonify({
             "status": "ok",
