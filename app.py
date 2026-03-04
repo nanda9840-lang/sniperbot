@@ -57,11 +57,10 @@ def webhook():
         # MESSAGE HANDLING
         # ━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-        if "text" in data:
-            # Pine already formatted message
+        if "text" in data and data["text"]:
             clean_message = data["text"]
+
         else:
-            # Fallback structured format
             ticker = data.get("ticker", "Unknown")
             action = data.get("action", "Alert Triggered")
             price = data.get("price", "N/A")
@@ -71,12 +70,6 @@ def webhook():
                 f"Action: {action}\n"
                 f"Price: {price}"
             )
-
-        telegram_payload = {
-            "chat_id": CHAT_ID,
-            "text": clean_message,
-            "parse_mode": "HTML"
-        }
 
         # ━━━━━━━━━━━━━━━━━━━━━━━━━━━
         # SEND TO TELEGRAM
@@ -112,3 +105,4 @@ def webhook():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
