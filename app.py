@@ -45,35 +45,37 @@ def webhook():
         data = request.get_json(silent=True)
 
         if not data:
-            logging.warning("⚠ Invalid JSON received")
-            return jsonify({"error": "Invalid JSON format"}), 400
+            return jsonify({"error": "Invalid JSON"}), 400
 
-        # 🔐 Secret Validation
         if data.get("secret") != SECRET:
-            logging.warning("🚨 Unauthorized attempt")
             return jsonify({"error": "Unauthorized"}), 403
 
-        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        # MESSAGE HANDLING
-        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        # ─────────────────────────────
+        # BUILD MESSAGE FIRST
+        # ─────────────────────────────
 
         if "text" in data and data["text"]:
             clean_message = data["text"]
-
         else:
             ticker = data.get("ticker", "Unknown")
-            action = data.get("action", "Alert Triggered")
+            action = data.get("action", "Alert")
             price = data.get("price", "N/A")
 
             clean_message = (
-                f"<b>🔔 Alert: {ticker}</b>\n"
+                f"<b>🔔 {ticker}</b>\n"
                 f"Action: {action}\n"
                 f"Price: {price}"
             )
 
-        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        # SEND TO TELEGRAM
-        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        # ─────────────────────────────
+        # DEFINE TELEGRAM PAYLOAD HERE
+        # ─────────────────────────────
+
+        telegram_payload = {
+            "chat_id": CHAT_ID,
+            "text": clean_message,
+            "parse_mode": "HTML"
+        }
 
         response = requests.post(
             TELEGRAM_URL,
@@ -82,21 +84,15 @@ def webhook():
         )
 
         if response.status_code != 200:
-            logging.error(f"Telegram API Error: {response.text}")
             return jsonify({
                 "error": "Telegram API failed",
                 "details": response.text
             }), 500
 
-        return jsonify({
-            "status": "ok",
-            "telegram_response": response.json()
-        })
+        return jsonify({"status": "ok"})
 
     except Exception as e:
-        logging.exception("🔥 Unexpected server error")
         return jsonify({"error": str(e)}), 500
-
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # RUN SERVER (Render Compatible)
@@ -105,5 +101,6 @@ def webhook():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
 
 
