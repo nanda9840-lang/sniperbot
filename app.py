@@ -32,12 +32,16 @@ def webhook():
             print(f"Unauthorized access attempt with secret: {data.get('secret')}")
             return jsonify({"error": "unauthorized"}), 403
 
-        # 3. Universal Message Formatting
-        # This takes whatever Pine Script sends and makes it readable
-        ticker = data.get("ticker", "Unknown Ticker")
-        action = data.get("action", "Alert Triggered")
-        price = data.get("price", "N/A")
-        
+        # 3. Universal Message Handling
+
+        if "text" in data:
+            clean_message = data["text"]
+
+        else:
+            ticker = data.get("ticker", "Unknown Ticker")
+            action = data.get("action", "Alert Triggered")
+            price = data.get("price", "N/A")
+    
         clean_message = f"<b>🔔 Alert: {ticker}</b>\nAction: {action}\nPrice: {price}"
         
         telegram_payload = {
@@ -58,3 +62,4 @@ if __name__ == "__main__":
     # Use the PORT env var provided by Render
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
+
