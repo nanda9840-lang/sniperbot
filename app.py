@@ -11,7 +11,7 @@ app = Flask(__name__)
 
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 SECRET = os.environ.get("SECRET")
-DEFAULT_CHAT_ID = os.environ.get("CHAT_ID")
+DEFAULT_CHAT_ID = os.environ.get("DEFAULT_CHAT_ID")
 
 if not TELEGRAM_TOKEN:
     raise ValueError("❌ TELEGRAM_TOKEN not set in environment variables")
@@ -105,4 +105,5 @@ def webhook():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
 
