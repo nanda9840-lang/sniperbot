@@ -72,7 +72,7 @@ def webhook():
         # ─────────────────────────────
 
         telegram_payload = {
-            "chat_id": CHAT_ID,
+            "chat_id": DEFAULT_CHAT_ID,
             "text": clean_message,
             "parse_mode": "HTML"
         }
@@ -101,6 +101,7 @@ def webhook():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
